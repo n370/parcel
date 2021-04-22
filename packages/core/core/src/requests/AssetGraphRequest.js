@@ -82,13 +82,19 @@ export default function createAssetGraphRequest(
       let prevResult = await input.api.getPreviousResult<AssetGraphRequestResult>();
       let builder = new AssetGraphBuilder(input, clone(prevResult)); // pass clone to not override the previous result reference
       let assetGraphRequest = await await builder.build();
+      let isAssetGraphStructureSame = assetGraphRequest.assetGraph.isEqualStructure(
+        prevResult?.assetGraph,
+      );
 
       return {
         ...assetGraphRequest,
         previousAssetGraphHash: prevResult?.assetGraph.hash,
-        isAssetGraphStructureSame: assetGraphRequest.assetGraph.isEqualStructure(
-          prevResult?.assetGraph,
-        ),
+        isAssetGraphStructureSame,
+        assetGraphChanges: assetGraphRequest.assetGraph.getAssetChanges(
+          prevResult,
+          isAssetGraphStructureSame,
+          assetGraphRequest.changedAssets,
+        ), //might have to move this
       };
     },
     input,

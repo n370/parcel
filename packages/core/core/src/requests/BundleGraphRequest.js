@@ -241,6 +241,11 @@ class BundlerRunner {
       node => node.type === 'asset',
     ).length;
 
+    // TODO : May want to move
+    let changedBundles = Array.from(changedAssets.values()).flatMap(asset =>
+      internalBundleGraph.getBundlesContainingAssets(asset),
+    );
+
     // if assets === changedAssets, do a normal bundle
     const shouldUpdate =
       this.options.isIncremental && numOfAssets > changedAssets.size;
@@ -249,12 +254,18 @@ class BundlerRunner {
     try {
       if (shouldUpdate && isAssetGraphStructureSame) {
         for (let asset of changedAssets.values()) {
-          internalBundleGraph._graph.addNode(nodeFromAsset(asset));
+          let bundles = internalBundleGraph.findBundlesWithAsset(asset);
+          for (let bundle of bundles) {
+            internalBundleGraph._graph.addNode(nodeFromAsset(asset));
+            internalBundleGraph._bundleContentHashes.delete(bundle.id);
+          }
         }
         mutableBundleGraph = new MutableBundleGraph(
           internalBundleGraph,
           this.options,
         );
+      } else if (shouldUpdate && !isAssetGraphStructureSame) {
+        //import or export change, removal of import for now (assuming)
       } else {
         let mutableBundleGraph = new MutableBundleGraph(
           internalBundleGraph,
@@ -333,11 +344,6 @@ class BundlerRunner {
 
     // Recompute the cache key to account for new dev dependencies and invalidations.
     cacheKey = await this.getCacheKey(graph);
-
-    // TODO : May want to move
-    let changedBundles = Array.from(changedAssets.values()).flatMap(asset =>
-      internalBundleGraph.getBundlesContainingAssets(asset),
-    );
 
     let result = {
       bundleGraph: internalBundleGraph,

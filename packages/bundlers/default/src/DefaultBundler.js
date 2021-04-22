@@ -421,7 +421,24 @@ export default (new Bundler({
     // Remove assets that are duplicated between shared bundles.
     deduplicate(bundleGraph);
   },
-  update({bundleGraph, config}) {
+  update({bundleGraph, config, changedAssets, changedBundles}) {
+    //want to create subgraphs for each changed bundle?
+    // update mutable bundle graph by merging subgraphs in , and updating nonimport export nodes
+    //pass in changed bundles and asset graph ?
+    //bundlegraph == mutablebundle graph
+    let changedBundleMap = changedBundles.reduce(function(map, obj) {
+      map[obj.id] = obj;
+      return map;
+    }, {}); //not sure if I need this actually
+
+    bundleGraph.traverseBundles({
+      //update bundles while traversing ?
+      enter: (node /* context, actions*/) => {
+        //abstract actually changing the bundle ?
+      },
+    });
+
+    // *OLD BUNDLE*
     let bundleRoots: Map<Bundle, Array<Asset>> = new Map();
     let bundlesByEntryAsset: Map<Asset, Bundle> = new Map();
 
