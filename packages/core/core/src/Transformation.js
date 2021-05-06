@@ -142,8 +142,9 @@ export default class Transformation {
       await asset.extractSourcesContentFromMap();
     } else if (SOURCEMAP_EXTENSIONS.has(asset.value.type)) {
       // Load existing sourcemaps, this automatically runs the source contents extraction
+      let existing;
       try {
-        await asset.loadExistingSourcemap();
+        existing = await asset.loadExistingSourcemap();
       } catch (err) {
         logger.verbose([
           {
@@ -160,6 +161,16 @@ export default class Transformation {
             filePath: asset.value.filePath,
           },
         ]);
+      }
+
+      if (existing == null) {
+        // If no existing sourcemap was found, initialize sourcesContent with
+        // the asset's filepath and its original contents.
+        asset.sourcesContent = {
+          [path
+            .relative(this.options.projectRoot, asset.value.filePath)
+            .replace(new RegExp(path.sep, 'g'), '/')]: await asset.getCode(),
+        };
       }
     }
 
