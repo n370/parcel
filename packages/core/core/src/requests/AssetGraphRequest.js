@@ -85,16 +85,23 @@ export default function createAssetGraphRequest(
       let isAssetGraphStructureSame = assetGraphRequest.assetGraph.isEqualStructure(
         prevResult?.assetGraph,
       );
+      let isPrevResult =
+        prevResult &&
+        prevResult.assetGraph.nodes.size > 0 &&
+        !isAssetGraphStructureSame;
+      let assetGraphTransformationSubGraph = isPrevResult
+        ? assetGraphRequest.assetGraph.getChangedAssetGraph(
+            prevResult,
+            isAssetGraphStructureSame,
+            assetGraphRequest.changedAssets,
+          )
+        : new AssetGraph(); //TODO: change this return value
 
       return {
         ...assetGraphRequest,
         previousAssetGraphHash: prevResult?.assetGraph.hash,
         isAssetGraphStructureSame,
-        assetGraphChanges: assetGraphRequest.assetGraph.getAssetChanges(
-          prevResult,
-          isAssetGraphStructureSame,
-          assetGraphRequest.changedAssets,
-        ), //might have to move this
+        assetGraphTransformationSubGraph,
       };
     },
     input,
@@ -791,7 +798,7 @@ export class AssetGraphBuilder {
       ...input,
       name: this.name,
       optionsRef: this.optionsRef,
-    });
+    }); //access to old graph
     let assets = await this.api.runRequest<AssetRequestInput, Array<Asset>>(
       request,
       {force: true},

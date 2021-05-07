@@ -252,7 +252,7 @@ class BundlerRunner {
 
     let mutableBundleGraph;
     try {
-      if (shouldUpdate && isAssetGraphStructureSame) {
+      if (shouldUpdate && isAssetGraphStructureSame && false) {
         for (let asset of changedAssets.values()) {
           let bundles = internalBundleGraph.findBundlesWithAsset(asset);
           for (let bundle of bundles) {
@@ -264,7 +264,7 @@ class BundlerRunner {
           internalBundleGraph,
           this.options,
         );
-      } else if (shouldUpdate && !isAssetGraphStructureSame) {
+      } else if (shouldUpdate && !isAssetGraphStructureSame && false) {
         //import or export change, removal of import for now (assuming)
       } else {
         let mutableBundleGraph = new MutableBundleGraph(
