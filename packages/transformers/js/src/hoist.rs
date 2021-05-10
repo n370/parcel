@@ -704,40 +704,50 @@ impl<'a> Fold for Hoist<'a> {
         }
       }
       Expr::Bin(ref binary) => {
-        let mut a = false;
-        if let Expr::Bin(BinExpr {
+        let is_typeof_require = |expr: &Expr| -> bool {
+          if let Expr::Unary(UnaryExpr {
+            op: UnaryOp::TypeOf,
+            ref arg,
+            ..
+          }) = expr
+          {
+            if let Expr::Ident(ref ident) = &**arg {
+              if ident.sym == js_word!("require") && !self.collect.decls.contains(&id!(ident)) {
+                return true;
+              }
+            }
+          }
+          false
+        };
+        let is_function_str = |expr: &Expr| -> bool {
+          if let Expr::Lit(Lit::Str(ref str)) = expr {
+            if str.value == js_word!("function") {
+              return true;
+            }
+          }
+          false
+        };
+
+        let is_typeof_require_function = if let Expr::Bin(BinExpr {
           op: BinaryOp::EqEq,
           ref left,
           ref right,
           ..
         }) = &*binary.left
         {
-          if let Expr::Lit(Lit::Str(ref str)) = &**left {
-            if str.value == js_word!("function") {
-              if let Expr::Unary(UnaryExpr {
-                op: UnaryOp::TypeOf,
-                ref arg,
-                ..
-              }) = &**right
-              {
-                if let Expr::Ident(ref ident) = &**arg {
-                  if ident.sym == js_word!("require") && !self.collect.decls.contains(&id!(ident)) {
-                    a = true;
-                  }
-                }
-              }
-            }
-          }
-        }
+          (is_function_str(&**left) && is_typeof_require(&**right))
+            || (is_function_str(&**right) && is_typeof_require(&**left))
+        } else {
+          false
+        };
 
-        let mut b = false;
-        if let Expr::Ident(ref ident) = &*binary.right {
-          if ident.sym == js_word!("require") && !self.collect.decls.contains(&id!(ident)) {
-            b = true;
-          }
-        }
+        let is_require_ident = if let Expr::Ident(ref ident) = &*binary.right {
+          ident.sym == js_word!("require") && !self.collect.decls.contains(&id!(ident))
+        } else {
+          false
+        };
 
-        if a && b {
+        if is_typeof_require_function && is_require_ident {
           return Expr::Ident(Ident::new("undefined".into(), DUMMY_SP));
         }
       }
