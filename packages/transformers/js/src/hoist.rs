@@ -729,14 +729,15 @@ impl<'a> Fold for Hoist<'a> {
         };
 
         let is_typeof_require_function = if let Expr::Bin(BinExpr {
-          op: BinaryOp::EqEq,
+          op,
           ref left,
           ref right,
           ..
         }) = &*binary.left
         {
-          (is_function_str(&**left) && is_typeof_require(&**right))
-            || (is_function_str(&**right) && is_typeof_require(&**left))
+          (op == &BinaryOp::EqEq || op == &BinaryOp::EqEqEq)
+            && ((is_function_str(&**left) && is_typeof_require(&**right))
+              || (is_function_str(&**right) && is_typeof_require(&**left)))
         } else {
           false
         };
@@ -3804,6 +3805,12 @@ mod tests {
     console.log(typeof module);
     console.log(typeof require);
     console.log(module.hot);
+    console.log("function" == typeof require && require);
+    console.log("function" === typeof require && require);
+    console.log(typeof require == "function" && require);
+    console.log(typeof require === "function" && require);
+    console.log(require && "function" == typeof require);
+    console.log(require && typeof require == "function");
     "#,
     );
     assert_eq!(
@@ -3812,6 +3819,12 @@ mod tests {
     console.log("object");
     console.log("function");
     console.log(null);
+    console.log(undefined);
+    console.log(undefined);
+    console.log(undefined);
+    console.log(undefined);
+    console.log(require && "function" == "function");
+    console.log(require && "function" == "function");
     "#}
     );
   }
