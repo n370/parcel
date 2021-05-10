@@ -703,6 +703,44 @@ impl<'a> Fold for Hoist<'a> {
           }
         }
       }
+      Expr::Bin(ref binary) => {
+        let mut a = false;
+        if let Expr::Bin(BinExpr {
+          op: BinaryOp::EqEq,
+          ref left,
+          ref right,
+          ..
+        }) = &*binary.left
+        {
+          if let Expr::Lit(Lit::Str(ref str)) = &**left {
+            if str.value == js_word!("function") {
+              if let Expr::Unary(UnaryExpr {
+                op: UnaryOp::TypeOf,
+                ref arg,
+                ..
+              }) = &**right
+              {
+                if let Expr::Ident(ref ident) = &**arg {
+                  if ident.sym == js_word!("require") && !self.collect.decls.contains(&id!(ident)) {
+                    a = true;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        let mut b = false;
+        if let Expr::Ident(ref ident) = &*binary.right {
+          if ident.sym == js_word!("require") && !self.collect.decls.contains(&id!(ident)) {
+            b = true;
+          }
+        }
+
+        if a && b {
+          return Expr::Ident(Ident::new("undefined".into(), DUMMY_SP));
+        }
+      }
       _ => {}
     }
 
