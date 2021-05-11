@@ -691,6 +691,13 @@ export default class BundleGraph {
 
   isAssetReferencedByDependant(bundle: Bundle, asset: Asset): boolean {
     let assetNodeId = nullthrows(this._graph.getNodeIdByContentKey(asset.id));
+
+    if (
+      this._graph.getNodeIdsConnectedTo(assetNodeId, 'references').length > 0
+    ) {
+      return true;
+    }
+
     let dependencies = this._graph
       .getNodeIdsConnectedTo(assetNodeId)
       .map(id => nullthrows(this._graph.getNode(id)))
@@ -700,39 +707,12 @@ export default class BundleGraph {
         return node.value;
       });
 
-    // Collect bundles that depend on this asset being available to reference
-    // asynchronously. If any of them appear in our traversal, this asset is
-    // referenced.
-    let asyncInternalReferencingBundles = new Set(
-      this._graph
-        .getNodeIdsConnectedTo(assetNodeId, 'references')
-        .map(id => nullthrows(this._graph.getNode(id)))
-        .filter(node => node.type === 'dependency')
-        .map(node => {
-          invariant(node.type === 'dependency');
-          return node;
-        })
-        .flatMap(dependencyNode =>
-          this._graph
-            .getNodeIdsConnectedTo(
-              this._graph.getNodeIdByContentKey(dependencyNode.id),
-              'internal_async',
-            )
-            .map(id => {
-              let node = nullthrows(this._graph.getNode(id));
-              invariant(node.type === 'bundle');
-              return node.value;
-            }),
-        ),
-    );
-
     const bundleHasReference = (bundle: Bundle) => {
       return (
         !this.bundleHasAsset(bundle, asset) &&
-        (asyncInternalReferencingBundles.has(bundle) ||
-          dependencies.some(dependency =>
-            this.bundleHasDependency(bundle, dependency),
-          ))
+        dependencies.some(dependency =>
+          this.bundleHasDependency(bundle, dependency),
+        )
       );
     };
 
